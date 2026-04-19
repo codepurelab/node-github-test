@@ -1,0 +1,7 @@
+{
+  "name": "node-github-test",
+  "dependencies": {
+    "express": "4.15.0",           
+    "lodash": "4.17.15"
+  }
+}

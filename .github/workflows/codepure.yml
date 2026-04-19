@@ -1,0 +1,83 @@
+name: Codepure Security Scan
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [ "main", "master" ]
+
+jobs:
+  codepure_devsecops_gate:
+    name: Codepure Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Trigger Codepure API
+        id: codepure-scan
+        run: |
+          echo "🚀 Triggering Codepure DevSecOps Scan..."
+          
+          if [ -z "${{ secrets.CODEPURE_TOKEN }}" ]; then
+            echo "🚨 ERROR: CODEPURE_TOKEN is missing! Please add it to your GitHub Repository Secrets."
+            exit 1
+          fi
+          
+          BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
+          BASE_BRANCH="${{ github.base_ref || github.event.repository.default_branch }}"
+          COMMIT_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://1798-2001-16a2-df2a-3700-6d57-96ff-cfb3-f25.ngrok-free.app/api/devsecops/scan/trigger" \
+            -H "Authorization: Token ${{ secrets.CODEPURE_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "project_id": "'"${{ github.repository_id }}"'",
+              "repo_name": "'"${{ github.repository }}"'",
+              "branch": "'"$BRANCH_NAME"'",
+              "base_branch": "'"$BASE_BRANCH"'",
+              "commit_hash": "'"$COMMIT_SHA"'",
+              "provider": "github",
+              "triggered_by": "'"${{ github.actor }}"'"
+            }')
+            
+          HTTP_STATUS=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          
+          if [ "$HTTP_STATUS" -ne 200 ]; then
+             echo "🚨 FATAL: Failed to reach Codepure API (Status: $HTTP_STATUS)"
+             echo "Response: $BODY"
+             exit 1
+          fi
+
+          API_STATUS=$(echo "$BODY" | jq -r '.status')
+          API_MSG=$(echo "$BODY" | jq -r '.message')
+          MD_SUMMARY=$(echo "$BODY" | jq -r '.markdown_summary')
+
+          echo "$MD_SUMMARY" > codepure_report.md
+          echo "$MD_SUMMARY" >> $GITHUB_STEP_SUMMARY
+
+          echo ""
+          echo "========================================================"
+          cat codepure_report.md
+          echo "========================================================"
+          echo ""
+
+          if [ "$API_STATUS" == "blocked" ]; then
+            echo "::error title=Security Gate Failed::$API_MSG"
+            echo "🚨 SECURITY GATE FAILED: $API_MSG"
+            exit 1
+          fi
+
+          if [ "$API_STATUS" == "warn" ]; then
+            echo "::warning title=Audit Warning::$API_MSG"
+            echo "⚠️ AUDIT WARNING: $API_MSG"
+            exit 0
+          fi
+          
+          echo "✅ Security Check Passed cleanly."
+
+      - name: Upload Report Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Codepure DevSecOps Report
+          path: codepure_report.md

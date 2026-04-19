@@ -6,6 +6,7 @@ on:
   push:
     branches: [ "main", "master" ]
 
+  workflow_dispatch:
 jobs:
   codepure_devsecops_gate:
     name: Codepure Scan

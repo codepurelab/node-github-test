@@ -5,21 +5,20 @@ on:
     types: [opened, synchronize, reopened]
   push:
     branches: [ "main", "master" ]
-
   workflow_dispatch:
+
 jobs:
   codepure_devsecops_gate:
     name: Codepure Scan
     runs-on: ubuntu-latest
-    
-steps:
+    steps:
       - name: Trigger Codepure API
         id: codepure-scan
         run: |
-          echo "🚀 Triggering Codepure DevSecOps Scan..."
+          echo "Triggering Codepure DevSecOps Scan..."
           
           if [ -z "${{ secrets.CODEPURE_TOKEN }}" ]; then
-            echo "🚨 ERROR: CODEPURE_TOKEN is missing! Please add it to your GitHub Repository Secrets."
+            echo "ERROR: CODEPURE_TOKEN is missing! Please add it to your GitHub Repository Secrets."
             exit 1
           fi
 
@@ -27,7 +26,7 @@ steps:
           BASE_BRANCH="${{ github.base_ref || github.event.repository.default_branch }}"
           COMMIT_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
 
-          # ✨ THE FIX: Safely construct JSON using jq
+          # FIX: Safely construct JSON using jq
           PAYLOAD=$(jq -n \
             --arg pid "${{ github.repository_id }}" \
             --arg repo "${{ github.repository }}" \
@@ -47,7 +46,7 @@ steps:
           BODY=$(echo "$RESPONSE" | head -n -1)
           
           if [ "$HTTP_STATUS" -ne 200 ]; then
-             echo "🚨 FATAL: Failed to reach Codepure API (Status: $HTTP_STATUS)"
+             echo "FATAL: Failed to reach Codepure API (Status: $HTTP_STATUS)"
              echo "Response: $BODY"
              exit 1
           fi
@@ -67,14 +66,14 @@ steps:
 
           if [ "$API_STATUS" == "blocked" ]; then
             echo "::error title=Security Gate Failed::$API_MSG"
-            echo "🚨 SECURITY GATE FAILED: $API_MSG"
+            echo "SECURITY GATE FAILED: $API_MSG"
             exit 1
           fi
 
           if [ "$API_STATUS" == "warn" ]; then
             echo "::warning title=Audit Warning::$API_MSG"
-            echo "⚠️ AUDIT WARNING: $API_MSG"
+            echo "AUDIT WARNING: $API_MSG"
             exit 0
           fi
           
-          echo "✅ Security Check Passed cleanly."
+          echo "Security Check Passed cleanly."

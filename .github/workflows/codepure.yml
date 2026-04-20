@@ -28,7 +28,7 @@ jobs:
 
           # FIX: Safely construct JSON using jq
           PAYLOAD=$(jq -n -c \
-            --arg pid "${{ github.repository_id }}" \
+            --arg pid "${{ github.repository }}" \
             --arg repo "${{ github.repository }}" \
             --arg branch "$BRANCH_NAME" \
             --arg base "$BASE_BRANCH" \

@@ -36,6 +36,9 @@ jobs:
             --arg actor "${{ github.actor }}" \
             '{project_id: $pid, repo_name: $repo, branch: $branch, base_branch: $base, commit_hash: $commit, provider: "github", triggered_by: $actor}')
 
+          echo "DEBUG: Generated JSON Payload"
+          echo "PAYLOAD: $PAYLOAD"
+
           # Pass the safe $PAYLOAD variable to curl
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://1798-2001-16a2-df2a-3700-6d57-96ff-cfb3-f25.ngrok-free.app/api/devsecops/scan/trigger" \
             -H "Authorization: Token ${{ secrets.CODEPURE_TOKEN }}" \

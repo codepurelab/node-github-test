@@ -3,8 +3,6 @@ name: Codepure Security Scan
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-  push:
-    branches: [ "main", "master" ]
   workflow_dispatch:
 
 jobs:

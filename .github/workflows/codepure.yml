@@ -27,7 +27,7 @@ jobs:
           COMMIT_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
 
           # FIX: Safely construct JSON using jq
-          PAYLOAD=$(jq -n \
+          PAYLOAD=$(jq -n -c \
             --arg pid "${{ github.repository_id }}" \
             --arg repo "${{ github.repository }}" \
             --arg branch "$BRANCH_NAME" \
